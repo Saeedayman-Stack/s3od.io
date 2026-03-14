@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" x-data="truthShield" :class="{ 'dark': darkMode }">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TruthShield AI | أقوى كاشف كذب للأخبار والمنشورات</title>
+    
+    <!-- SEO & Social Meta Tags -->
+    <meta name="description" content="TruthShield AI هو أداتك الاحترافية للتحقق من صحة الأخبار والمنشورات باستخدام الذكاء الاصطناعي. حلل النصوص والروابط فوراً.">
+    <meta name="keywords" content="كاشف الكذب, الذكاء الاصطناعي, تدقيق الحقائق, OpenRouter, Fact Check, AI, Fake News Detector">
+    <meta property="og:title" content="TruthShield AI | هل هذا الخبر حقيقي؟">
+    <meta property="og:description" content="أقوى مدقق حقائق مدعوم بالذكاء الاصطناعي. تحقق من أي خبر في ثوانٍ.">
+    <meta property="og:image" content="https://truthshield-ai.vercel.app/og-image.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CDNs -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        },
+                        danger: '#ef4444',
+                        warning: '#f59e0b',
+                        success: '#10b981',
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0ea5e9">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-cairo transition-colors duration-300">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+        <nav class="container mx-auto px-4 h-16 flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center gap-2 group cursor-pointer" @click="resetView">
+                <span class="text-2xl filter drop-shadow-[0_0_8px_rgba(14,165,233,0.5)] group-hover:scale-110 transition-transform">🛡️</span>
+                <span class="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-primary-500">TruthShield AI</span>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex items-center gap-4">
+                <!-- API Key Button -->
+                <button @click="showSettings = true" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative" title="API Settings">
+                    <i data-lucide="key" class="w-5 h-5"></i>
+                    <span v-if="!apiKey" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+
+                <!-- Language Toggle -->
+                <button @click="toggleLang" class="font-inter font-semibold text-sm px-3 py-1 rounded-md border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <span x-text="lang === 'ar' ? 'EN' : 'عربي'"></span>
+                </button>
+
+                <!-- Theme Toggle -->
+                <button @click="darkMode = !darkMode" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i x-show="!darkMode" data-lucide="moon" class="w-5 h-5"></i>
+                    <i x-show="darkMode" data-lucide="sun" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 max-w-5xl">
+        <!-- Hero Section -->
+        <section x-show="!result && !loading" x-transition class="text-center py-12 lg:py-20">
+            <h1 class="text-4xl lg:text-6xl font-extrabold mb-6 leading-tight">
+                <span x-text="t('heroTitle')"></span>
+                <span class="text-primary-500">✓</span>
+            </h1>
+            <p class="text-lg lg:text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-2xl mx-auto" x-text="t('heroSub')"></p>
+            
+            <!-- Quick Input -->
+            <div class="max-w-3xl mx-auto bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-2xl shadow-primary-500/10 border border-slate-200 dark:border-slate-800 focus-within:ring-2 ring-primary-500 transition-all">
+                <div class="flex flex-col md:flex-row gap-2">
+                    <textarea 
+                        x-model="inputText"
+                        @input="autoResize($event.target)"
+                        :placeholder="t('placeholder')"
+                        class="flex-grow p-4 bg-transparent border-none focus:ring-0 text-lg resize-none min-h-[100px] max-h-[300px]"
+                    ></textarea>
+                    <div class="flex md:flex-col justify-end gap-2 p-2">
+                        <button 
+                            @click="analyze"
+                            :disabled="!inputText.trim() || loading"
+                            class="bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-bold px-8 py-4 rounded-xl shadow-lg shadow-primary-500/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            <i data-lucide="zap" class="w-5 h-5"></i>
+                            <span x-text="t('analyzeBtn')"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Selector -->
+            <div class="mt-6 flex flex-wrap justify-center gap-3">
+                <template x-for="m in models" :key="m.id">
+                    <button 
+                        @click="selectedModel = m.id"
+                        :class="selectedModel === m.id ? 'bg-primary-500 text-white' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800'"
+                        class="px-4 py-2 rounded-full text-sm font-medium transition-all hover:shadow-md"
+                        x-text="m.name"
+                    ></button>
+                </template>
+            </div>
+        </section>
+
+        <!-- Loading State -->
+        <section x-show="loading" class="py-20 text-center">
+            <div class="inline-block relative w-24 h-24 mb-6">
+                <div class="absolute inset-0 border-4 border-primary-500/20 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                <div class="absolute inset-4 bg-primary-500/10 rounded-full animate-pulse-slow flex items-center justify-center">
+                    <i data-lucide="shield" class="w-8 h-8 text-primary-500"></i>
+                </div>
+            </div>
+            <h2 class="text-2xl font-bold mb-2 animate-pulse" x-text="t('loadingTitle')"></h2>
+            <p class="text-slate-500" x-text="t('loadingSub')"></p>
+        </section>
+
+        <!-- Results Panel -->
+        <section x-show="result && !loading" x-transition class="py-8">
+            <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <!-- Result Header -->
+                <div class="p-6 md:p-10 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-center gap-8">
+                    <!-- Score Circle -->
+                    <div class="relative w-48 h-48 flex-shrink-0">
+                        <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="8" class="text-slate-100 dark:text-slate-800"/>
+                            <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="8" 
+                                stroke-dasharray="282.7" 
+                                :stroke-dashoffset="282.7 - (282.7 * result.truth_score / 100)"
+                                :class="getScoreColorClass()"
+                                class="transition-all duration-1000 ease-out"
+                            />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                            <span class="text-5xl font-black font-inter" x-text="result.truth_score + '%'"></span>
+                            <span class="text-sm font-bold uppercase tracking-wider opacity-70" x-text="result.verdict"></span>
+                        </div>
+                    </div>
+
+                    <!-- Verdict Summary -->
+                    <div class="flex-grow text-center md:text-right">
+                        <div class="inline-block px-4 py-1 rounded-full text-sm font-bold mb-4" :class="getScoreBgClass()">
+                            <span x-text="getVerdictLabel()"></span>
+                        </div>
+                        <h2 class="text-3xl font-black mb-4" x-text="t('analysisResult')"></h2>
+                        <div class="flex flex-wrap justify-center md:justify-start gap-4">
+                            <button @click="share('twitter')" class="p-3 rounded-xl bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 hover:scale-110 transition-transform">
+                                <i data-lucide="twitter" class="w-6 h-6"></i>
+                            </button>
+                            <button @click="copyReport" class="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all font-bold">
+                                <i data-lucide="copy" class="w-5 h-5"></i>
+                                <span x-text="t('copyReport')"></span>
+                            </button>
+                            <button @click="exportJSON" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
+                                <i data-lucide="download" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Analysis -->
+                <div class="p-6 md:p-10 space-y-8">
+                    <!-- Reasoning -->
+                    <div>
+                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="list-checks" class="text-primary-500"></i>
+                            <span x-text="t('reasoningSteps')"></span>
+                        </h3>
+                        <ul class="space-y-4">
+                            <template x-for="(step, index) in result.reasoning" :key="index">
+                                <li class="flex gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-primary-500 text-white flex items-center justify-center font-bold font-inter" x-text="index + 1"></span>
+                                    <p class="text-slate-700 dark:text-slate-300" x-text="step"></p>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <!-- Sources -->
+                    <div x-show="result.sources && result.sources.length > 0">
+                        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="link" class="text-primary-500"></i>
+                            <span x-text="t('sources')"></span>
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <template x-for="source in result.sources" :key="source">
+                                <a :href="source" target="_blank" class="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary-500 dark:hover:border-primary-500 transition-colors group">
+                                    <span class="truncate text-sm opacity-70" x-text="source"></span>
+                                    <i data-lucide="external-link" class="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"></i>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-center">
+                    <button @click="resetView" class="font-bold text-primary-500 hover:underline flex items-center gap-2">
+                        <i data-lucide="arrow-right" class="w-5 h-5 rotate-180"></i>
+                        <span x-text="t('backToInput')"></span>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- History Sidebar -->
+    <aside x-show="showHistory" 
+           x-transition:enter="transition ease-out duration-300"
+           x-transition:enter-start="translate-x-full"
+           x-transition:enter-end="translate-x-0"
+           class="fixed inset-y-0 right-0 w-full md:w-96 bg-white dark:bg-slate-900 shadow-2xl z-[60] border-l border-slate-200 dark:border-slate-800">
+        <div class="h-full flex flex-col">
+            <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <h2 class="text-xl font-bold" x-text="t('history')"></h2>
+                <button @click="showHistory = false" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="flex-grow overflow-y-auto p-4 space-y-4">
+                <template x-for="item in history" :key="item.id">
+                    <div class="p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer relative group" @click="loadFromHistory(item)">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="w-2 h-2 rounded-full" :class="getScoreColorClass(item.result.truth_score)"></span>
+                            <span class="text-xs font-bold opacity-50 font-inter" x-text="new Date(item.timestamp).toLocaleDateString()"></span>
+                        </div>
+                        <p class="text-sm font-bold line-clamp-2" x-text="item.text"></p>
+                        <button @click.stop="deleteHistory(item.id)" class="absolute top-2 left-2 p-1 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </template>
+                <div x-show="history.length === 0" class="text-center py-20 opacity-30">
+                    <i data-lucide="history" class="w-16 h-16 mx-auto mb-4"></i>
+                    <p x-text="t('noHistory')"></p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Settings Modal -->
+    <div x-show="showSettings" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" x-transition>
+        <div @click.away="showSettings = false" class="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800">
+            <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                <i data-lucide="settings" class="text-primary-500"></i>
+                <span x-text="t('settings')"></span>
+            </h2>
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-bold mb-2" x-text="t('apiKeyLabel')"></label>
+                    <input type="password" x-model="apiKey" placeholder="sk-or-v1-..." class="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-primary-500 focus:border-primary-500">
+                    <p class="text-xs mt-2 opacity-50">
+                        <span x-text="t('apiKeyHint')"></span>
+                        <a href="https://openrouter.ai/" target="_blank" class="text-primary-500 underline">OpenRouter.ai</a>
+                    </p>
+                </div>
+                <button @click="saveSettings" class="w-full py-4 bg-primary-500 text-white font-bold rounded-xl shadow-lg shadow-primary-500/20 hover:bg-primary-600 transition-all" x-text="t('saveBtn')"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Trigger (FAB) -->
+    <button @click="showHistory = true" class="fixed bottom-6 left-6 w-14 h-14 bg-white dark:bg-slate-900 rounded-full shadow-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-center hover:scale-110 transition-transform z-40">
+        <i data-lucide="history" class="w-6 h-6"></i>
+    </button>
+
+    <!-- Footer -->
+    <footer class="mt-20 py-10 border-t border-slate-200 dark:border-slate-800 text-center">
+        <p class="text-sm opacity-50 mb-4">
+            Powered by <a href="https://openrouter.ai" class="font-bold hover:text-primary-500">OpenRouter.ai</a>
+        </p>
+        <div class="flex justify-center gap-6 text-xs font-bold uppercase tracking-widest opacity-40">
+            <a href="#" @click.prevent="showModal('privacy')" x-text="t('privacy')"></a>
+            <a href="#" @click.prevent="showModal('terms')" x-text="t('terms')"></a>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>
